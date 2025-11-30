@@ -63,13 +63,13 @@ export function TasksTable({ refreshKey = 0 }: Props) {
         title: 'Автор',
         dataIndex: ['author', 'name'],
         key: 'author',
-        render: (_, t) => `${t.author.name} (${t.author.email})`,
+        render: (_, t) => `${t.author.name}`,
       },
       {
         title: 'Исполнитель',
         dataIndex: ['performer', 'name'],
         key: 'performer',
-        render: (_, t) => `${t.performer.name} (${t.performer.email})`,
+        render: (_, t) => `${t.performer.name}`,
       },
       {
         title: 'Создано',

@@ -1,14 +1,22 @@
 import React, { useState } from 'react';
-import { Button, Card, Form, Input, message } from 'antd';
+import { Button, Card, Form, Input, Tooltip, message } from 'antd';
+import { InfoCircleOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+
+type AuthFormValues = {
+  name?: string;
+  email: string;
+  password: string;
+};
 
 const AuthPage: React.FC<{ onAuth?: () => void }> = ({ onAuth }) => {
   const [isLogin, setIsLogin] = useState(true);
   const { signIn, signUp, loading } = useAuth();
   const navigate = useNavigate();
+  const [form] = Form.useForm<AuthFormValues>();
 
-  const onFinishLogin = async (values: any) => {
+  const onFinishLogin = async (values: AuthFormValues) => {
     const res = await signIn(values.email, values.password);
     if (res.success) {
       message.success('Вход выполнен');
@@ -19,14 +27,30 @@ const AuthPage: React.FC<{ onAuth?: () => void }> = ({ onAuth }) => {
     }
   };
 
-  const onFinishRegister = async (values: any) => {
-    const res = await signUp(values.name, values.email, values.password);
+  const onFinishRegister = async (values: AuthFormValues) => {
+    const res = await signUp(values.name ?? '', values.email, values.password);
     if (res.success) {
       message.success('Регистрация прошла успешно! Теперь войдите.');
       setIsLogin(true);
+
+      // оставляем email/password, очищаем только имя
+      form.setFieldsValue({ name: '' });
     } else {
       message.error('Ошибка регистрации');
     }
+  };
+
+  const toggleMode = () => {
+    setIsLogin(prev => {
+      const next = !prev;
+
+      // если переключаемся на логин — name не нужен, очищаем его
+      if (next === true) {
+        form.setFieldsValue({ name: '' });
+      }
+
+      return next;
+    });
   };
 
   return (
@@ -40,10 +64,22 @@ const AuthPage: React.FC<{ onAuth?: () => void }> = ({ onAuth }) => {
       }}
     >
       <Card title={isLogin ? 'Авторизация' : 'Регистрация'} style={{ width: 400 }}>
-        <Form layout="vertical" onFinish={isLogin ? onFinishLogin : onFinishRegister}>
+        <Form<AuthFormValues>
+          form={form}
+          layout="vertical"
+          onFinish={isLogin ? onFinishLogin : onFinishRegister}
+          validateTrigger={['onBlur', 'onChange']}
+        >
           {!isLogin && (
-            <Form.Item label="Имя" name="name" rules={[{ required: true, message: 'Введите имя' }]}>
-              <Input />
+            <Form.Item
+              label="Имя"
+              name="name"
+              rules={[
+                { required: true, message: 'Введите имя' },
+                { whitespace: true, message: 'Имя не может быть пустым' },
+              ]}
+            >
+              <Input placeholder="Например, Иван Петров" />
             </Form.Item>
           )}
 
@@ -52,15 +88,25 @@ const AuthPage: React.FC<{ onAuth?: () => void }> = ({ onAuth }) => {
             name="email"
             rules={[{ required: true, type: 'email', message: 'Введите корректный email' }]}
           >
-            <Input />
+            <Input placeholder="name@example.com" />
           </Form.Item>
 
           <Form.Item
-            label="Пароль"
+            label={
+              <span>
+                Пароль{' '}
+                <Tooltip title="Минимум 6 символов">
+                  <InfoCircleOutlined style={{ marginLeft: 6, color: '#8c8c8c' }} />
+                </Tooltip>
+              </span>
+            }
             name="password"
-            rules={[{ required: true, message: 'Введите пароль' }]}
+            rules={[
+              { required: true, message: 'Введите пароль' },
+              { min: 6, message: 'Минимум 6 символов' },
+            ]}
           >
-            <Input.Password />
+            <Input.Password placeholder="Минимум 6 символов" />
           </Form.Item>
 
           <Form.Item>
@@ -70,7 +116,7 @@ const AuthPage: React.FC<{ onAuth?: () => void }> = ({ onAuth }) => {
           </Form.Item>
         </Form>
 
-        <Button type="link" onClick={() => setIsLogin(!isLogin)} block>
+        <Button type="link" onClick={toggleMode} block>
           {isLogin ? 'Нет аккаунта? Зарегистрироваться' : 'Уже есть аккаунт? Войти'}
         </Button>
       </Card>
